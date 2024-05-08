@@ -1,5 +1,5 @@
 <?php
-
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/conexion.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/clases/Persona.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/objetos.php';
 

@@ -21,7 +21,7 @@ CREATE TABLE persona(
     numerodocumento     int(8) NOT NULL,
     sexo                varchar(1) NOT NULL,
     nacionalidad        varchar(11),
-    email               varchar(100) NOT NULL,
+    email               varchar(100), NOT NULL,
     celular             varchar(20),
     provincia           varchar(100),
     localidad           varchar(100),
@@ -37,4 +37,3 @@ CREATE TABLE usuario(
     FOREIGN KEY (idpersona) REFERENCES persona(idpersona),
     FOREIGN KEY (idtipousuario) REFERENCES tipousuario(idtipousuario)
 );
-

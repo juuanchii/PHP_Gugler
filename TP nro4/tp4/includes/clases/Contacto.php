@@ -26,22 +26,7 @@ class Contacto
 
 	private function _validarTelefono($valor)
 	{
-		$telefono = explode('-', $valor);
-
-		if ( count($telefono) != 2 )
-		{
-			return false;
-		}
-
-		if ( is_numeric($telefono[0]) == false || is_numeric($telefono[1]) == false)
-		{
-			return false;
-		}
-
-		if ( ( strlen($telefono[0]) + strlen($telefono[1]) ) < 10 )
-		{
-			return false;
-		}
+		$telefono = $valor;
 
 		return true;
 	}
