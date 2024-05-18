@@ -31,7 +31,7 @@ hr
 {
 	min-height: 100%;
 	position: relative;
-	margin-bottom: -60px;
+	margin-bottom: -56px;
 }
 
 .push
@@ -144,7 +144,7 @@ label.radio
 
 div.buttons
 {
-	padding: 0.2em 1em 0.7em;
+	padding: 0.4em 0.4em 0.4em;
 	position: relative;
 	overflow: hidden;
 }

@@ -3,29 +3,27 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/conexion.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/clases/Persona.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/objetos.php';
+
 
 session_start();
 
 $oPersona = (isset($_SESSION['Persona']) == false ) ? new Persona() : $_SESSION['Persona'];
 
-$sql = "SELECT u.nombre as usua, p.idpersona, p.nombre, p.idtipodocumento, p.numerodocumento, p.email FROM persona p INNER JOIN usuario u ON p.idpersona = u.idpersona";
+$sql = "SELECT u.idusuario FROM usuario u";
 
 $result = $conexion->query($sql);
 
-while($row = $result->fetch(PDO::FETCH_ASSOC)) {
-	 	echo "<tr>";
-        echo "<td>".$row["usua"]."</td><br>";
-        echo "<td>".$row["idpersona"]."</td><br>";
-        echo "<td>".$row["nombre"]."</td><br>";
-        echo "<td>".$row["idtipodocumento"]."</td><br>";
-        echo "<td>".$row["numerodocumento"]."</td><br>";
-        echo "<td>".$row["email"]."</td><br>";
-        echo "</tr>";
+while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+	
+	$idusuario = $row['idusuario'];
 }
 
+$editar_url = "/tp4/administrador/editar.php?id=".$idusuario;
+$eliminar_url = "/tp4/administrador/eliminar.php?id=".$idusuario;
+
 ?>
-
-
 
 <!DOCTYPE html>
 <html>
@@ -41,21 +39,41 @@ while($row = $result->fetch(PDO::FETCH_ASSOC)) {
 
 	<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/header.php'; ?>
 
-	<div>
-		<h2>Listado de Usuarios:</h2>
+	<div class="ultimo_paso">
+			<fieldset>
+			<legend>Informaci&oacute;n Personal:</legend>
 
 			<div>
-				<table border='1'>
-
-				<tr><th>Identificador</th><th>Usuario</th><th>Apellido y Nombre</th><th>Tipo de Documento</th><th>Número de Documento</th><th>Email</th></tr>
-				</table>
+				<ul>
+					<li><label>ID de usuario</label></li>
+					<li><?php echo $idusuario;?></li>
+					<li><label>Nombre de usuario</label></li>
+					<li><?php echo $oPersona->getUsuario()->getNombre();?></li>
+					<li><label>Nombre y apellido</label></li>
+					<li><?php echo $oPersona->getNombre(); ?> <?php echo $oPersona->getApellido(); ?></li>
+					<li><label>Tipo de Documento</label></li>
+					<li><?php echo $oPersona->getTipoDocumento()->getDescripcion(); ?></li>
+					<li><label>N&uacute;mero de Documento</label></li>
+					<li><?php echo $oPersona->getNumeroDocumento(); ?></li>
+					<li><label>Email</label></li>
+					<li><?php echo $oPersona->getEmail()->getValor(); ?></li>
+					
+				</ul>
 			</div>
+			</fieldset>
+			<fieldset>
+				<div class="buttons">
+					<input type="button" value="Editar informacion" onclick="window.location.href='<?php echo $editar_url; ?>'">
+					<input type="button" value="Eliminar usuario" onclick="window.location.href='<?php echo $eliminar_url; ?>'">
+				</div>
+
+			</fieldset>
 	</div>
 
 	<div class="push"></div>
 	
 </div>
 
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/footer.php'; ?>
+	<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/footer.php'; ?>
 </body>
 </html>
