@@ -3,25 +3,30 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/conexion.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/clases/Persona.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/tp4/includes/php/objetos.php';
 
 
-session_start();
 
-$oPersona = (isset($_SESSION['Persona']) == false ) ? new Persona() : $_SESSION['Persona'];
-
-$sql = "SELECT u.idusuario FROM usuario u";
+$sql = "SELECT
+		u.idusuario
+		,u.nombre AS usuario
+		,p.apellidos
+		,p.nombre
+		,p.numerodocumento
+		,p.email
+		,td.nombre AS tipodocumento
+		,tu.nombre AS tipousuario
+		FROM persona p
+		inner join tipodocumento td using(idtipodocumento)
+		inner join usuario u using(idpersona)
+		inner join tipousuario tu using(idtipousuario)";
 
 $result = $conexion->query($sql);
 
-while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
-	
-	$idusuario = $row['idusuario'];
-}
+$rows = $result->fetchAll(PDO::FETCH_ASSOC);
 
-$editar_url = "/tp4/administrador/editar.php?id=".$idusuario;
-$eliminar_url = "/tp4/administrador/eliminar.php?id=".$idusuario;
+// $editar_url = "/tp4/administrador/editar.php?id=".$idusuario;
+// $eliminar_url = "/tp4/administrador/eliminar.php?id=".$idusuario;
 
 ?>
 
@@ -41,33 +46,38 @@ $eliminar_url = "/tp4/administrador/eliminar.php?id=".$idusuario;
 
 	<div class="ultimo_paso">
 			<fieldset>
-			<legend>Informaci&oacute;n Personal:</legend>
+			<legend>Listado de Usuarios:</legend>
 
-			<div>
-				<ul>
-					<li><label>ID de usuario</label></li>
-					<li><?php echo $idusuario;?></li>
-					<li><label>Nombre de usuario</label></li>
-					<li><?php echo $oPersona->getUsuario()->getNombre();?></li>
-					<li><label>Nombre y apellido</label></li>
-					<li><?php echo $oPersona->getNombre(); ?> <?php echo $oPersona->getApellido(); ?></li>
-					<li><label>Tipo de Documento</label></li>
-					<li><?php echo $oPersona->getTipoDocumento()->getDescripcion(); ?></li>
-					<li><label>N&uacute;mero de Documento</label></li>
-					<li><?php echo $oPersona->getNumeroDocumento(); ?></li>
-					<li><label>Email</label></li>
-					<li><?php echo $oPersona->getEmail()->getValor(); ?></li>
-					
-				</ul>
-			</div>
+			<table>
+			
+			<tr>
+				<th>ID</th>
+				<th>USUARIO</th>
+				<th>TIPO</th>
+				<th>APELLIDO Y NOMBRE</th>
+				<th>DOC</th>
+				<th>EMAIL</th>
+				<th>ACCIONES</th>
+			</tr>
+			
+			<?php foreach ( $rows as $row ) { ?>
+			<tr>
+				<td class="text-right"><?= $row['idusuario'] ?></td>
+				<td><?= $row['usuario'] ?></td>
+				<td class="text-center"><?= $row["tipousuario"] ?></td>
+				<td><?= $row["apellidos"] ?>, <?= $row["nombre"] ?></td>
+				<td class="text-right">(<?= $row["tipodocumento"] ?>) <?= $row["numerodocumento"] ?></td>
+				<td><?= $row ["email"] ?></td>
+				<td class="text-center">
+					<a href="/tp4/administrador/editar.php?id=<?= $row['idusuario']?>" title="Editar"><img alt="Modificar" src="/tp5/includes/img/edit.png"></a>
+					<a href="/tp4/administrador/eliminar.php?id=<?= $row['idusuario'] ?>" title="Eliminar"><img alt="Eliminar" src="/tp5/includes/img/delete.png"></a>
+				</td>
+			</tr>
+			<?php } ?>
+			
+		</table>
 			</fieldset>
-			<fieldset>
-				<div class="buttons">
-					<input type="button" value="Editar informacion" onclick="window.location.href='<?php echo $editar_url; ?>'">
-					<input type="button" value="Eliminar usuario" onclick="window.location.href='<?php echo $eliminar_url; ?>'">
-				</div>
-
-			</fieldset>
+			
 	</div>
 
 	<div class="push"></div>
