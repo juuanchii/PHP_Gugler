@@ -1,11 +1,17 @@
 <?php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/clases/Persona.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/objetos.php';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Singleton/Sesion.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Factory/ActiveRecordFactory.php';
 
-$oPersona = ( isset($_SESSION['Persona']) == false ) ? new Persona() : $_SESSION['Persona'];
+$oRegistry = Sesion::getInstance()->getRegistry();
+
+$oPersonaVO = ( $oRegistry->exists('Persona') ? $oRegistry->get('Persona') :  new PersonaVO());
+$aTipoDocumento = ActiveRecordFactory::getTipoDocumento()->fetchAll();
+
+$oUsuarioVO = ($oRegistry->exists('Usuario') ? $oRegistry->get('Usuario') : new UsuarioVO());
 
 ?>
 <!DOCTYPE html>
@@ -28,38 +34,40 @@ $oPersona = ( isset($_SESSION['Persona']) == false ) ? new Persona() : $_SESSION
 			
 			<ul>
 				<li><label>Nombre de Usuario:</label></li>
-				<li><input type="text" name="nombre_usuario" value="<?= $oPersona->getUsuario()->getNombre() ?>"></li>
+				<li><input type="text" name="nombre_usuario" value="<?= $oUsuarioVO->nombre ?>"></li>
 				
 				<li><label>Contrase&ntilde;a:</label></li>
-				<li><input type="password" name="contrasenia" value="<?= $oPersona->getUsuario()->getContrasenia() ?>"></li>
+				<li><input type="password" name="contrasenia" value="<?= $oUsuarioVO->contrasenia ?>"></li>
 				
 				<li><label>Apellido:</label></li>
-				<li><input type="text" name="apellido" value="<?= $oPersona->getApellido() ?>"></li>
+				<li><input type="text" name="apellido" value="<?= $oPersonaVO->apellidos ?>"></li>
 				
 				<li><label>Nombre:</label></li>
-				<li><input type="text" name="nombre" value="<?= $oPersona->getNombre() ?>"></li>
+				<li><input type="text" name="nombre" value="<?= $oPersonaVO->nombre ?>"></li>
 				
 				<li><label>Tipo de Documento:</label></li>
 				<li>
 					<select name="tipo_documento">
 						<?php foreach ( $aTipoDocumento as $oTipoDocumento ) { ?>
-						<option value="<?= $oTipoDocumento->getIdTipoDocumento() ?>" <?= ( $oPersona->getTipoDocumento()->getIdTipoDocumento() == $oTipoDocumento->getIdTipoDocumento() ) ? 'selected="selected"' : ''  ?>><?= $oTipoDocumento->getDescripcion() ?></option>
+						<option value="<?= $oTipoDocumento->idtipodocumento ?>"
+							<?= ( $oPersonaVO->idtipodocumento == $oTipoDocumento->idtipodocumento ) ? 'selected="selected"' : ''  ?>>
+							<?= $oTipoDocumento->descripcion ?>
+						</option>
 						<?php } ?>
 					</select>
 				</li>
 				
 				<li><label>N&uacute;mero de Documento:</label></li>
-				<li><input type="text" name="numero_documento" value="<?= $oPersona->getNumeroDocumento() ?>"></li>
+				<li><input type="text" name="numero_documento" value="<?= $oPersonaVO->numerodocumento ?>"></li>
 				
 				<li><label>Sexo:</label></li>
 				<li>
-					<?php foreach ( $aSexo as $oSexo ) { ?>
-					<label class="radio"><input type="radio" name="sexo" value="<?= $oSexo->getIdSexo() ?>" <?= ( $oPersona->getSexo()->getIdSexo() == $oSexo->getIdSexo() ) ? 'checked="checked"' : ''  ?>> <?= $oSexo->getDescripcion() ?></label>
-					<?php } ?>
+					<label class="radio"><input type="radio" name="sexo" value="M" <?= ( $oPersonaVO->sexo == 'M' ) ? 'checked="checked"' : ''  ?>> Masculino</label>
+					<label class="radio"><input type="radio" name="sexo" value="F" <?= ( $oPersonaVO->sexo == 'F' ) ? 'checked="checked"' : ''  ?>> Femenino</label>
 				</li>
 				
 				<li><label>Nacionalidad:</label></li>
-				<li><input type="text" name="nacionalidad" value="<?= $oPersona->getNacionalidad() ?>"></li>
+				<li><input type="text" name="nacionalidad" value="<?= $oPersonaVO->nacionalidad ?>"></li>
 			</ul>
 			
 			<div class="buttons">

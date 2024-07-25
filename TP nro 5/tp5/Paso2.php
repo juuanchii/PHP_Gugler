@@ -1,11 +1,14 @@
 <?php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/clases/Persona.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/objetos.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Factory/ActiveRecordFactory.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Singleton/Sesion.php';
 
-session_start();
+$oRegistry = Sesion::getInstance()->getRegistry();
 
-$oPersona = ( isset($_SESSION['Persona']) == false ) ? new Persona() : $_SESSION['Persona'];
+$oPersonaVO = ( $oRegistry->exists('Persona')? $oRegistry->get('Persona') : new PersonaVO() );
+$oUsuarioVO = ( $oRegistry->exists('Usuario')? $oRegistry->get('Usuario') : new UsuarioVO() );
+
+$aProvincia = array('Buenos Aries', 'Sante Fe', 'Cordoba', 'Entre Rios', 'La Pampa', 'Mendoza');
 
 $validarTipoDocumento = false;
 $validarSexo = false;
@@ -13,46 +16,42 @@ $validarContrasenia = false;
 
 if ( isset($_POST['bt_paso1']) == true )
 {
-	$usuario = ( isset($_POST['nombre_usuario']) == true ) ? $_POST['nombre_usuario'] : '';
-	$contrasenia = ( isset($_POST['contrasenia']) == true ) ? $_POST['contrasenia'] : '';
-	$apellido = ( isset($_POST['apellido']) == true ) ? $_POST['apellido'] : '';
-	$nombre = ( isset($_POST['nombre']) == true ) ? $_POST['nombre'] : '';
-	$tipoDocumento = ( isset($_POST['tipo_documento']) == true ) ? $_POST['tipo_documento'] : '';
-	$documento = ( isset($_POST['numero_documento']) == true ) ? $_POST['numero_documento'] : '';
-	$sexo = ( isset($_POST['sexo']) == true ) ? $_POST['sexo'] : '';
-	$nacionalidad = ( isset($_POST['nacionalidad']) == true ) ? $_POST['nacionalidad'] : '';
+	$oUsuarioVO->idtipousuario = 2;
+	$oUsuarioVO->nombre = ( isset($_POST['nombre_usuario']) == true ) ? $_POST['nombre_usuario'] : '';
+	$oUsuarioVO->contrasenia = ( isset($_POST['contrasenia']) == true ) ? $_POST['contrasenia'] : '';
+	$oPersonaVO->apellidos = ( isset($_POST['apellido']) == true ) ? $_POST['apellido'] : '';
+	$oPersonaVO->nombre = ( isset($_POST['nombre']) == true ) ? $_POST['nombre'] : '';
+	$oPersonaVO->idtipodocumento = ( isset($_POST['tipo_documento']) == true ) ? $_POST['tipo_documento'] : '';
+	$oPersonaVO->numerodocumento = ( isset($_POST['numero_documento']) == true ) ? $_POST['numero_documento'] : '';
+	$oPersonaVO->sexo = ( isset($_POST['sexo']) == true ) ? $_POST['sexo'] : '';
+	$oPersonaVO->nacionalidad = ( isset($_POST['nacionalidad']) == true ) ? $_POST['nacionalidad'] : '';
 
-	$oUsuario = new Usuario($usuario, $contrasenia);
+	$oUsuario = ActiveRecordFactory::getUsuario();
+	$oUsuario->set($oUsuarioVO); 
 
 	if ( $oUsuario->validarContrasenia() == true )
 	{
 		$validarContrasenia = true;
-		$oPersona->setUsuario($oUsuario);
 	}
 
+	$aTipoDocumento = ActiveRecordFactory::getTipoDocumento()->fetchAll();
 	foreach ( $aTipoDocumento as $oTipoDocumento )
 	{
-		if ( $tipoDocumento == $oTipoDocumento->getIdTipoDocumento() )
+		if ( $oPersonaVO->idtipodocumento == $oTipoDocumento->idtipodocumento )
 		{
-			$oPersona->setTipoDocumento($oTipoDocumento);
 			$validarTipoDocumento = true;
 		}
 	}
 
-	foreach ( $aSexo as $oSexo )
+	$sexos = array('M','F');
+	if ( in_array($oPersonaVO->sexo, $sexos) == true )
 	{
-		if ( $sexo == $oSexo->getIdSexo() )
-		{
-			$oPersona->setSexo($oSexo);
-			$validarSexo = true;
-		}
+		$validarSexo = true;
 	}
 
-	$oPersona->setApellido($apellido);
-	$oPersona->setNombre($nombre);
-	$oPersona->setNumeroDocumento($documento);
-	$oPersona->setNacionalidad($nacionalidad);
-	$_SESSION['Persona'] = $oPersona;
+
+	$oRegistry->add('Persona', $oPersonaVO);	
+	$oRegistry->add('Usuario', $oUsuarioVO);
 }
 else
 {
@@ -102,28 +101,25 @@ else
 
 				<ul>
 					<li><label>Correo electr&oacute;nico:</label></li>
-					<li><input type="text" name="email" value="<?= $oPersona->getEmail()->getValor() ?>"></li>
-
-					<li><label>Tel&eacute;fono:</label></li>
-					<li><input type="text" name="telefono" value="<?= $oPersona->getTelefono()->getValor() ?>"></li>
+					<li><input type="text" name="email" value="<?= $oPersonaVO->email ?>"></li>
 
 					<li><label>Celular:</label></li>
-					<li><input type="text" name="celular" value="<?= $oPersona->getCelular()->getValor() ?>"></li>
-
-					<li><label>Domicilio:</label></li>
-					<li><input type="text" name="domicilio" value="<?= $oPersona->getDomicilio() ?>"></li>
+					<li><input type="text" name="celular" value="<?= $oPersonaVO->celular ?>"></li>
 
 					<li><label>Provincia:</label></li>
 					<li>
 						<select name="provincia">
-							<?php foreach ( $aProvincia as $oProvincia ) { ?>
-							<option value="<?= $oProvincia->getIdProvincia() ?>" <?= ( $oPersona->getProvincia()->getIdProvincia() == $oProvincia->getIdProvincia() ) ? 'selected="selected"' : ''  ?>><?= $oProvincia->getDescripcion() ?></option>
+							<?php foreach ( $aProvincia as $Provincia ) { ?>
+							<option value="<?= $Provincia ?>"
+							<?= ( $oPersonaVO->provincia == $Provincia ) ? 'selected="selected"' : ''  ?>>
+								<?= $Provincia ?>
+							</option>
 							<?php } ?>
 						</select>
 					</li>
 
 					<li><label>Localidad:</label></li>
-					<li><input type="text" name="localidad" value="<?= $oPersona->getLocalidad() ?>"></li>
+					<li><input type="text" name="localidad" value="<?= $oPersonaVO->localidad ?>"></li>
 				</ul>
 
 				<div class="buttons">

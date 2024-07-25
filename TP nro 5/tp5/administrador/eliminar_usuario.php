@@ -1,66 +1,42 @@
 <?php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/clases/Persona.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/objetos.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/conexion.php';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Factory/ActiveRecordFactory.php';
+
 
 if ( isset($_POST['bt_eliminar']) == true )
 {
-	$pdo = conectarDB();
 	$idUsuario = ( isset($_POST['idUsuario']) == true ) ? $_POST['idUsuario'] : 0;
+	$pdo = DataBase::getInstance()->getConexion();
+	
+	$oUsuario = ActiveRecordFactory::getUsuario();
+	$oPersona = ActiveRecordFactory::getPersona();
+	
+	$oUsuario->fetch($idUsuario);
+	$oPersona->fetch($oUsuario->get()->idpersona);
+	
+	$idPersona = $oUsuario->get()->idpersona;
 
 	$pdo->beginTransaction();
 
 	try
 	{
-		$query = "select idpersona from usuario where idusuario = :idUsuario";
-		$stmt = $pdo->prepare($query);
-		$stmt->bindValue(':idUsuario', $idUsuario, PDO::PARAM_INT);
-		$stmt->execute();
-		$idPersona = $stmt->fetchColumn();
-
-		$query = "delete from usuario where idusuario = :idUsuario";
-
-		$stmt = $pdo->prepare($query);
-
-		$stmt->bindValue(':idUsuario', $idUsuario,PDO::PARAM_INT);
-
-		$stmt->execute();
-
-		$query = "delete from persona where idpersona = :idPersona";
-
-		$stmt = $pdo->prepare($query);
-
-		$stmt->bindValue(':idPersona',$idUsuario,PDO::PARAM_INT);
-
-		$stmt->execute();
+		$oUsuario->delete($idUsuario);
+		$oPersona->delete($idPersona);
 
 		$pdo->commit();
 
-		session_destroy();
-		header('location: /tp5/administrador');
+		header('location: /tp5/administrador/index.php');
 	}
 	catch (Exception $e)
 	{
 		$pdo->rollBack();
+		echo "Error al eliminar datos: ". $e->getMessage();
 	}
 }
 
-$validacionesCorrectas = true;
-
-foreach ( $validaciones as $validacion )
-{
-	if ( $validacion == false )
-	{
-		$validacionesCorrectas = false;
-		break;
-	}
-}
-
-if ( $validacionesCorrectas == true )
-{
-
-}
 
 ?>
 <!DOCTYPE html>

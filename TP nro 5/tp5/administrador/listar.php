@@ -1,13 +1,15 @@
 <?php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/conexion.php';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Singleton/DataBase.php';
 
-$pdo = conectarDB();
+$pdo = DataBase::getInstance()->getConexion();
 
 $query = "select
 		u.idusuario
 		,u.nombre as usuario
-		,p.apellido
+		,p.apellidos
 		,p.nombre
 		,p.numerodocumento
 		,p.email
@@ -56,7 +58,7 @@ $filas = $stmt->fetchAll(PDO::FETCH_OBJ);
 				<td class="text-right"><?= $fila->idusuario ?></td>
 				<td><?= $fila->usuario ?></td>
 				<td class="text-center"><?= $fila->tipousuario ?></td>
-				<td><?= $fila->apellido ?>, <?= $fila->nombre ?></td>
+				<td><?= $fila->apellidos ?>, <?= $fila->nombre ?></td>
 				<td class="text-right">(<?= $fila->tipodocumento ?>) <?= $fila->numerodocumento ?></td>
 				<td><?= $fila->email ?></td>
 				<td class="text-center">

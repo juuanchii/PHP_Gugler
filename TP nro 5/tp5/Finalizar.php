@@ -1,67 +1,44 @@
 <?php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/clases/Persona.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/conexion.php';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Singleton/Sesion.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Singleton/DataBase.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Factory/ActiveRecordFactory.php';
 
-$pdo = conectarDB();
-$oPersona = $_SESSION['Persona'];
+$oSesion = Sesion::getInstance();
+$oRegistry = $oSesion->getRegistry();
 
-$pdo->beginTransaction();
+$pdo = DataBase::getInstance()->getConexion();
 
+$oPersonaVO = ( $oRegistry->exists('Persona') == false ) ? new PersonaVO() : $oRegistry->get('Persona');
+$oUsuarioVO = ( $oRegistry->exists('Usuario') == false ) ? new UsuarioVO() : $oRegistry->get('Usuario');
+
+$oPersona = ActiveRecordFactory::getPersona();
+$oUsuario = ActiveRecordFactory::getUsuario();
 try
 {
-	$query = "insert into persona (idtipodocumento,apellido,nombre,numerodocumento,sexo,nacionalidad,email,telefono,celular,provincia,localidad)
-			values (:idTipoDocumento,
-			:apellido,
-			:nombre,
-			:documento,
-			:sexo,
-			:nacionalidad,
-			:email,
-			:telefono,
-			:celular,
-			:provincia,
-			:localidad)";
+	$pdo->beginTransaction();
+	
+	$oPersona->set($oPersonaVO);
+	$oUsuario->set($oUsuarioVO);
 
-	$stmt = $pdo->prepare($query);
+	$oPersona->insert();
 
-	$stmt->bindValue(':idTipoDocumento', $oPersona->getTipoDocumento()->getIdTipoDocumento(),PDO::PARAM_INT);
-	$stmt->bindValue(':apellido', $oPersona->getApellido(),PDO::PARAM_STR);
-	$stmt->bindValue(':nombre', $oPersona->getNombre(),PDO::PARAM_STR);
-	$stmt->bindValue(':documento', $oPersona->getNumeroDocumento(),PDO::PARAM_INT);
-	$stmt->bindValue(':sexo', $oPersona->getSexo()->getIdSexo(),PDO::PARAM_STR);
-	$stmt->bindValue(':nacionalidad', $oPersona->getNacionalidad(),PDO::PARAM_STR);
-	$stmt->bindValue(':email', $oPersona->getEmail()->getValor(),PDO::PARAM_STR);
-	$stmt->bindValue(':telefono', $oPersona->getTelefono()->getValor(),PDO::PARAM_STR);
-	$stmt->bindValue(':celular', $oPersona->getCelular()->getValor(),PDO::PARAM_STR);
-	$stmt->bindValue(':provincia', $oPersona->getProvincia()->getDescripcion(),PDO::PARAM_STR);
-	$stmt->bindValue(':localidad', $oPersona->getLocalidad(),PDO::PARAM_STR);
+	$oUsuario->get()->idpersona = $oPersona->get()->idpersona;
 
-	$stmt->execute();
-
-	$idPersona = $pdo->lastInsertId();
-
-	$query = "insert into usuario (idpersona,idtipousuario,nombre,contrasenia)
-			values(:idPersona,2,:usuario,:contrasenia)";
-
-	$stmt = $pdo->prepare($query);
-
-	$stmt->bindValue(':idPersona',$idPersona,PDO::PARAM_INT);
-	$stmt->bindValue(':usuario',$oPersona->getUsuario()->getNombre(),PDO::PARAM_STR);
-	$stmt->bindValue(':contrasenia',$oPersona->getUsuario()->getContrasenia(),PDO::PARAM_STR);
-
-	$stmt->execute();
+	$oUsuario->insert();
 
 	$pdo->commit();
 
-	session_destroy();
-	header('location: Paso1.php');
+	$oSesion->destruir();
+	header('location: index.php');
 }
 catch (Exception $e)
 {
 	$pdo->rollBack();
+	echo "Error al insertar datos: " . $e->getMessage();
 }
 
 ?>

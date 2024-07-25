@@ -1,28 +1,27 @@
 <?php 
 
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 $idUsuario = $_GET['id'];
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/clases/Persona.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/objetos.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/conexion.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Factory/ActiveRecordFactory.php';
 
-$pdo = conectarDB();
+$pdo = DataBase::getInstance()->getConexion();
 
-$query = "select
-		u.idusuario
-		,u.idtipousuario
-		,u.nombre as usuario
-		,u.contrasenia
-		,p.*
-	from usuario u
-	inner join persona p using(idpersona)
-	where u.idusuario = :idUsuario";
+$oUsuario = ActiveRecordFactory::getUsuario();
+$oUsuario->fetch($idUsuario);
 
-$stmt = $pdo->prepare($query);
-$stmt->bindValue(':idUsuario', $idUsuario, PDO::PARAM_INT);
-$stmt->execute();
-$resultado = $stmt->fetchObject();
+$oPersona = ActiveRecordFactory::getPersona();
+$oPersona->fetch($oUsuario->get()->idpersona);
 
+$aTipoUsuario = ActiveRecordFactory::getTipoUsuario()->fetchAll();
+
+$aTipoDocumento = ActiveRecordFactory::getTipoDocumento()->fetchAll();
+
+$aProvincia = array('Buenos Aries', 'Sante Fe', 'Cordoba', 'Entre Ríos', 'La Pampa', 'Mendoza');
+
+var_dump($oPersona->get()->provincia);
 ?>
 <!DOCTYPE html>
 <html>
@@ -47,47 +46,46 @@ $resultado = $stmt->fetchObject();
 
 			<ul>
 				<li><label>Nombre de Usuario:</label></li>
-				<li><input type="text" name="nombre_usuario" value="<?= $resultado->usuario ?>"></li>
+				<li><input type="text" name="nombre_usuario" value="<?= $oUsuario->get()->nombre ?>"></li>
 
 				<li><label>Tipo de Usuario:</label></li>
 				<li>
 					<select name="tipo_usuario">
-						<?php foreach ( $aTipoUsuario as $id => $descripcion ) { ?>
-							<option value="<?= $id ?>" <?= ( $resultado->idtipousuario == $id ) ? 'selected="selected"' : ''  ?>><?= $descripcion ?></option>
+						<?php foreach ( $aTipoUsuario as $oTipoUsuario ) { ?>
+							<option value="<?= $oTipoUsuario->idtipousuario ?>" <?= ( $oUsuario->get()->idtipousuario == $oTipoUsuario->idtipousuario ) ? 'selected="selected"' : ''  ?>><?= $oTipoUsuario->nombre ?></option>
 						<?php } ?>
 					</select>
 				</li>
 
 				<li><label>Contrase&ntilde;a:</label></li>
-				<li><input type="password" name="contrasenia" value="<?= $resultado->contrasenia ?>"></li>
+				<li><input type="password" name="contrasenia" value="<?= $oUsuario->get()->contrasenia ?>"></li>
 
 				<li><label>Apellido:</label></li>
-				<li><input type="text" name="apellido" value="<?= $resultado->apellido ?>"></li>
+				<li><input type="text" name="apellido" value="<?= $oPersona->get()->apellidos ?>"></li>
 
 				<li><label>Nombre:</label></li>
-				<li><input type="text" name="nombre" value="<?= $resultado->nombre ?>"></li>
+				<li><input type="text" name="nombre" value="<?= $oPersona->get()->nombre ?>"></li>
 
 				<li><label>Tipo de Documento:</label></li>
 				<li>
 					<select name="tipo_documento">
 						<?php foreach ( $aTipoDocumento as $oTipoDocumento ) { ?>
-							<option value="<?= $oTipoDocumento->getIdTipoDocumento() ?>" <?= ( $resultado->idtipodocumento == $oTipoDocumento->getIdTipoDocumento() ) ? 'selected="selected"' : ''  ?>><?= $oTipoDocumento->getDescripcion() ?></option>
+							<option value="<?= $oTipoDocumento->idtipodocumento ?>" <?= ( $oPersona->get()->idtipodocumento == $oTipoDocumento->idtipodocumento ) ? 'selected="selected"' : ''  ?>><?= $oTipoDocumento->descripcion ?></option>
 						<?php } ?>
 					</select>
 				</li>
 
 				<li><label>N&uacute;mero de Documento:</label></li>
-				<li><input type="text" name="numero_documento" value="<?= $resultado->numerodocumento ?>"></li>
+				<li><input type="text" name="numero_documento" value="<?= $oPersona->get()->numerodocumento ?>"></li>
 
 				<li><label>Sexo:</label></li>
 				<li>
-					<?php foreach ( $aSexo as $oSexo ) { ?>
-						<label class="radio"><input type="radio" name="sexo" value="<?= $oSexo->getIdSexo() ?>" <?= ( $resultado->sexo == $oSexo->getIdSexo() ) ? 'checked="checked"' : ''  ?>> <?= $oSexo->getDescripcion() ?></label>
-					<?php } ?>
+					<label class="radio"><input type="radio" name="sexo" value="M" <?= ( $oPersona->get()->sexo == 'M' ) ? 'checked="checked"' : ''  ?>> Masculino</label>
+					<label class="radio"><input type="radio" name="sexo" value="F" <?= ( $oPersona->get()->sexo == 'F' ) ? 'checked="checked"' : ''  ?>> Femenino</label>
 				</li>
 
 				<li><label>Nacionalidad:</label></li>
-				<li><input type="text" name="nacionalidad" value="<?= $resultado->nacionalidad ?>"></li>
+				<li><input type="text" name="nacionalidad" value="<?=  $oPersona->get()->nacionalidad ?>"></li>
 			</ul>
 
 		</fieldset>
@@ -97,25 +95,24 @@ $resultado = $stmt->fetchObject();
 
 			<ul>
 				<li><label>Correo electr&oacute;nico:</label></li>
-				<li><input type="text" name="email" value="<?= $resultado->email ?>"></li>
-
-				<li><label>Tel&eacute;fono:</label></li>
-				<li><input type="text" name="telefono" value="<?= $resultado->telefono ?>"></li>
+				<li><input type="text" name="email" value="<?= $oPersona->get()->email ?>"></li>
 
 				<li><label>Celular:</label></li>
-				<li><input type="text" name="celular" value="<?= $resultado->celular ?>"></li>
+				<li><input type="text" name="celular" value="<?= $oPersona->get()->celular ?>"></li>
 
 				<li><label>Provincia:</label></li>
 				<li>
 					<select name="provincia">
-						<?php foreach ( $aProvincia as $oProvincia ) { ?>
-							<option value="<?= $oProvincia->getIdProvincia() ?>" <?= ( $resultado->provincia == $oProvincia->getIdProvincia() ) ? 'selected="selected"' : ''  ?>><?= $oProvincia->getDescripcion() ?></option>
+						<?php foreach ( $aProvincia as $provincia ) { ?>
+							<option value="<?= $provincia ?>" <?= ( $oPersona->get()->provincia == $provincia ) ? 'selected="selected"' : ''  ?>>
+								<?= $provincia ?>
+							</option>
 						<?php } ?>
 					</select>
 				</li>
 
 				<li><label>Localidad:</label></li>
-				<li><input type="text" name="localidad" value="<?= $resultado->localidad ?>"></li>
+				<li><input type="text" name="localidad" value="<?= $oPersona->get()->localidad ?>"></li>
 			</ul>
 
 		</fieldset>
@@ -133,6 +130,6 @@ $resultado = $stmt->fetchObject();
 	
 </div>
 
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp3-viejo/includes/php/footer.php'; ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/footer.php'; ?>
 </body>
 </html>

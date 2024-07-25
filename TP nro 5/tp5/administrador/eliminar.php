@@ -1,26 +1,18 @@
 <?php 
 
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 $idUsuario = $_GET['id'];
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/clases/Persona.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/objetos.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/conexion.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Factory/ActiveRecordFactory.php';
 
-$pdo = conectarDB();
+$oUsuario = ActiveRecordFactory::getUsuario();
+$oPersona = ActiveRecordFactory::getPersona();
 
-$query = "select
-		u.idusuario
-		,u.nombre as usuario
-		,p.apellido
-		,p.nombre
-	from usuario u
-	inner join persona p using(idpersona)
-	where u.idusuario = :idUsuario";
+$oUsuario->fetch($idUsuario);
+$oPersona->fetch($oUsuario->get()->idpersona);
 
-$stmt = $pdo->prepare($query);
-$stmt->bindValue(':idUsuario', $idUsuario, PDO::PARAM_INT);
-$stmt->execute();
-$resultado = $stmt->fetchObject();
 
 ?>
 <!DOCTYPE html>
@@ -45,7 +37,7 @@ $resultado = $stmt->fetchObject();
 
 			<h3>Eliminar usuario</h3>
 			<p>
-				¿Realmente desea eliminar el usuario <b><?= $resultado->usuario ?></b> perteneciente a <b><?= $resultado->apellido ?>, <?= $resultado->nombre ?></b>?
+				¿Realmente desea eliminar el usuario <b><?= $oUsuario->get()->nombre ?></b> perteneciente a <b><?= $oPersona->get()->apellidos ?>, <?= $oPersona->get()->nombre ?></b>?
 			</p>
 
 			<div class="buttons">
@@ -60,6 +52,6 @@ $resultado = $stmt->fetchObject();
 	
 </div>
 
-<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp3-viejo/includes/php/footer.php'; ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/footer.php'; ?>
 </body>
 </html>

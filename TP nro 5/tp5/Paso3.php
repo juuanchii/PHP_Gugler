@@ -1,67 +1,66 @@
 <?php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/clases/Persona.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/objetos.php';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Singleton/Sesion.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Factory/ActiveRecordFactory.php';
 
-$oPersona = ( isset($_SESSION['Persona']) == false ) ? new Persona() : $_SESSION['Persona'];
+$oRegistry = Sesion::getInstance()->getRegistry();
+
+$oPersonaVO = ($oRegistry->exists('Persona') == true) ? $oRegistry->get('Persona') : new PersonaVO();
+$oUsuarioVO = ($oRegistry->exists('Usuario') == true) ? $oRegistry->get('Usuario') : new UsuarioVO();
+
+$aProvincia = array('Buenos Aries', 'Sante Fe', 'Cordoba', 'Entre Ríos', 'La Pampa', 'Mendoza');
 
 $validarProvincia = false;
 $validarEmail = false;
-$validarTelefono = false;
 $validarCelular = false;
 
 if ( isset($_POST['bt_paso2']) == true )
 {
-	$email = ( isset($_POST['email']) == true ) ? $_POST['email'] : '';
-	$telefono = ( isset($_POST['telefono']) == true ) ? $_POST['telefono'] : '';
-	$celular = ( isset($_POST['celular']) == true ) ? $_POST['celular'] : '';
-	$domicilio = ( isset($_POST['domicilio']) == true ) ? $_POST['domicilio'] : '';
-	$provincia = ( isset($_POST['provincia']) == true ) ? $_POST['provincia'] : '';
-	$localidad = ( isset($_POST['localidad']) == true ) ? $_POST['localidad'] : '';
+	$oPersonaVO->email = ( isset($_POST['email']) == true ) ? $_POST['email'] : '';
+	$oPersonaVO->celular = ( isset($_POST['celular']) == true ) ? $_POST['celular'] : '';
+	$oPersonaVO->provincia = ( isset($_POST['provincia']) == true ) ? $_POST['provincia'] : '';
+	$oPersonaVO->localidad = ( isset($_POST['localidad']) == true ) ? $_POST['localidad'] : '';
 
-	foreach ( $aProvincia as $oProvincia )
+	foreach ( $aProvincia as $provincia )
 	{
-		if ( $oProvincia->getIdProvincia() == $provincia )
+		if ($oPersonaVO->provincia == $provincia)
 		{
 			$validarProvincia = true;
-			$oPersona->setProvincia($oProvincia);
 		}
 	}
 
-	$oEmail = new Contacto(Contacto::TIPO_EMAIL, $email);
-	if ( $oEmail->validar() == true )
-	{
-		$validarEmail = true;
-		$oPersona->setEmail($oEmail);
-	}
-
-	$oTelefono = new Contacto(Contacto::TIPO_TELEFONO, $telefono);
-	if ( $oTelefono->validar() == true )
-	{
-		$validarTelefono = true;
-		$oPersona->setTelefono($oTelefono);
-	}
-
-	$oCelular = new Contacto(Contacto::TIPO_TELEFONO, $celular);
-	if ( $oCelular->validar() == true )
+	$oPersona = ActiveRecordFactory::getPersona();
+	$oPersona->set($oPersonaVO);
+	$validar = $oPersona->validar();
+	if ( $validar[0] == true )
 	{
 		$validarCelular = true;
-		$oPersona->setCelular($oCelular);
 	}
 
-	$oPersona->setDomicilio($domicilio);
-	$oPersona->setLocalidad($localidad);
-	$_SESSION['Persona'] = $oPersona;
+	if($validar[1] == true)
+	{
+		$validarEmail = true;
+	}
+
+	$oRegistry->add('Persona', $oPersonaVO);
 }
 else
 {
 	$validarProvincia = true;
 	$validarEmail = true;
-	$validarTelefono = true;
 	$validarCelular = true;
 }
+
+$oPersona = ActiveRecordFactory::getPersona();
+$oPersona->set($oPersonaVO);
+$oUsuario = ActiveRecordFactory::getUsuario();
+$oUsuario->set($oUsuarioVO);
+$oTipoDocumento = ActiveRecordFactory::getTipoDocumento();
+$oTipoDocumento->fetch($oPersonaVO->idtipodocumento);
+var_dump($oTipoDocumento);
 
 ?>
 <!DOCTYPE html>
@@ -78,7 +77,7 @@ else
 	<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/header.php'; ?>
 	<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/menu.php'; ?>
 
-	<?php if ( $validarProvincia == false || $validarEmail == false || $validarTelefono == false || $validarCelular == false ) { ?>
+	<?php if ( $validarProvincia == false || $validarEmail == false || $validarCelular == false ) { ?>
 
 		<div class="mensaje">
 			<h3>Existen algunos errores al procesar la información ingresada</h3>
@@ -87,8 +86,6 @@ else
 					<li>La provincia ingresada no se encuentra registrada</li>
 				<?php } if ( $validarEmail == false ) { ?>
 					<li>El correo electrónico no es válido. Debe contener un símbolo "@"</li>
-				<?php } if ( $validarTelefono == false ) { ?>
-					<li>El teléfono no es válido. Debe contener al menos 10 dígitos y estar separado por un "-"</li>
 				<?php } if ( $validarCelular == false ) { ?>
 					<li>El celular no es válido. Debe contener al menos 10 dígitos y estar separado por un "-"</li>
 				<?php } ?>
@@ -109,28 +106,28 @@ else
 
 				<ul>
 					<li><label>Nombre de Usuario:</label></li>
-					<li><?= $oPersona->getUsuario()->getNombre() ?><br></li>
+					<li><?= $oUsuarioVO->nombre ?><br></li>
 
 					<li><label>Contrase&ntilde;a:</label></li>
-					<li><?= $oPersona->getUsuario()->getContraseniaEnmascadara() ?><br></li>
+					<li><?= $oUsuario->getContraseniaEnmascadara() ?><br></li>
 
 					<li><label>Apellido:</label></li>
-					<li><?= $oPersona->getApellido() ?></li>
+					<li><?= $oPersonaVO->apellidos ?></li>
 
 					<li><label>Nombre:</label></li>
-					<li><?= $oPersona->getNombre() ?></li>
+					<li><?= $oPersonaVO->nombre ?></li>
 
 					<li><label>Tipo de Documento:</label></li>
-					<li><?= $oPersona->getTipoDocumento()->getDescripcion() ?></li>
+					<li><?= $oTipoDocumento->get()->nombre ?></li>
 
 					<li><label>N&uacute;mero de Documento:</label></li>
-					<li><?= $oPersona->getNumeroDocumento() ?></li>
+					<li><?= $oPersonaVO->numerodocumento ?></li>
 
 					<li><label>Sexo:</label></li>
-					<li><?= $oPersona->getSexo()->getDescripcion() ?></li>
+					<li><?= $oPersonaVO->sexo ?></li>
 
 					<li><label>Nacionalidad:</label></li>
-					<li><?= $oPersona->getNacionalidad() ?></li>
+					<li><?= $oPersonaVO->nacionalidad ?></li>
 				</ul>
 
 			</fieldset>
@@ -140,22 +137,16 @@ else
 
 				<ul>
 					<li><label>Correo electr&oacute;nico:</label></li>
-					<li><?= $oPersona->getEmail()->getValor() ?></li>
-
-					<li><label>Tel&eacute;fono:</label></li>
-					<li><?= $oPersona->getTelefono()->getValor() ?></li>
+					<li><?= $oPersonaVO->email ?></li>
 
 					<li><label>Celular:</label></li>
-					<li><?= $oPersona->getCelular()->getValor() ?></li>
-
-					<li><label>Domicilio:</label></li>
-					<li><?= $oPersona->getDomicilio() ?></li>
+					<li><?= $oPersonaVO->celular ?></li>
 
 					<li><label>Provincia:</label></li>
-					<li><?= $oPersona->getProvincia()->getDescripcion() ?></li>
+					<li><?= $oPersonaVO->provincia ?></li>
 
 					<li><label>Localidad:</label></li>
-					<li><?= $oPersona->getLocalidad() ?></li>
+					<li><?= $oPersonaVO->localidad ?></li>
 				</ul>
 
 			</fieldset>

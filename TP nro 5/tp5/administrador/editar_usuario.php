@@ -1,10 +1,15 @@
 <?php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/clases/Persona.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/objetos.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/conexion.php';
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-$oPersona = new Persona();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/tp5/includes/php/Factory/ActiveRecordFactory.php';
+
+$oPersona = ActiveRecordFactory::getPersona();
+$oUsuario = ActiveRecordFactory::getUsuario();
+$aTipoDocumento = ActiveRecordFactory::getTipoDocumento()->fetchAll();
+
+$aProvincia = array('Buenos Aries', 'Sante Fe', 'Cordoba', 'Entre Ríos', 'La Pampa', 'Mendoza');
 
 $validaciones = array(
 	'validarTipoDocumento' => false,
@@ -12,90 +17,73 @@ $validaciones = array(
 	'validarContrasenia' => false,
 	'validarProvincia' => false,
 	'validarEmail' => false,
-	'validarTelefono' => false,
 	'validarCelular' => false,
 );
 
 if ( isset($_POST['bt_guardar']) == true )
 {
-	$idUsuario = ( isset($_POST['idUsuario']) == true ) ? $_POST['idUsuario'] : 0;
-	$usuario = ( isset($_POST['nombre_usuario']) == true ) ? $_POST['nombre_usuario'] : '';
-	$contrasenia = ( isset($_POST['contrasenia']) == true ) ? $_POST['contrasenia'] : '';
-	$apellido = ( isset($_POST['apellido']) == true ) ? $_POST['apellido'] : '';
-	$nombre = ( isset($_POST['nombre']) == true ) ? $_POST['nombre'] : '';
-	$tipoDocumento = ( isset($_POST['tipo_documento']) == true ) ? $_POST['tipo_documento'] : '';
-	$documento = ( isset($_POST['numero_documento']) == true ) ? $_POST['numero_documento'] : '';
-	$sexo = ( isset($_POST['sexo']) == true ) ? $_POST['sexo'] : '';
-	$nacionalidad = ( isset($_POST['nacionalidad']) == true ) ? $_POST['nacionalidad'] : '';
-	$tipoUsuario = ( isset($_POST['tipo_usuario']) == true ) ? $_POST['tipo_usuario'] : 2;
+	$oUsuario->fetch($_POST['idUsuario']);
+	$oPersona->fetch($oUsuario->get()->idpersona);
 
-	$email = ( isset($_POST['email']) == true ) ? $_POST['email'] : '';
-	$telefono = ( isset($_POST['telefono']) == true ) ? $_POST['telefono'] : '';
-	$celular = ( isset($_POST['celular']) == true ) ? $_POST['celular'] : '';
-	$provincia = ( isset($_POST['provincia']) == true ) ? $_POST['provincia'] : '';
-	$localidad = ( isset($_POST['localidad']) == true ) ? $_POST['localidad'] : '';
+	$oUsuarioVO = $oUsuario->get();
+	$oPersonaVO = $oPersona->get();
 
-	$oUsuario = new Usuario($usuario, $contrasenia);
+	$oUsuarioVO->idtipousuario = ( isset($_POST['tipo_usuario']) == true ) ? (int)$_POST['tipo_usuario'] : 2;
+	$oUsuarioVO->nombre = ( isset($_POST['nombre_usuario']) == true ) ? $_POST['nombre_usuario'] : '';
+	$oUsuarioVO->contrasenia = ( isset($_POST['contrasenia']) == true ) ? $_POST['contrasenia'] : '';
+	$oPersonaVO->apellidos = ( isset($_POST['apellido']) == true ) ? $_POST['apellido'] : '';
+	$oPersonaVO->nombre = ( isset($_POST['nombre']) == true ) ? $_POST['nombre'] : '';
+	$oPersonaVO->idtipodocumento = ( isset($_POST['tipo_documento']) == true ) ? $_POST['tipo_documento'] : '';
+	$oPersonaVO->numerodocumento = ( isset($_POST['numero_documento']) == true ) ? $_POST['numero_documento'] : '';
+	$oPersonaVO->sexo = ( isset($_POST['sexo']) == true ) ? $_POST['sexo'] : '';
+	$oPersonaVO->nacionalidad = ( isset($_POST['nacionalidad']) == true ) ? $_POST['nacionalidad'] : '';
+
+	$oPersonaVO->email = ( isset($_POST['email']) == true ) ? $_POST['email'] : '';
+	$oPersonaVO->celular = ( isset($_POST['celular']) == true ) ? $_POST['celular'] : '';
+	$oPersonaVO->provincia = ( isset($_POST['provincia']) == true ) ? $_POST['provincia'] : '';
+	$oPersonaVO->localidad = ( isset($_POST['localidad']) == true ) ? $_POST['localidad'] : '';
+	
+	$oUsuario->set($oUsuarioVO); 
+	$oPersona->set($oPersonaVO);
 
 	if ( $oUsuario->validarContrasenia() == true )
 	{
 		$validaciones['validarContrasenia'] = true;
-		$oPersona->setUsuario($oUsuario);
 	}
 
 	foreach ( $aTipoDocumento as $oTipoDocumento )
 	{
-		if ( $tipoDocumento == $oTipoDocumento->getIdTipoDocumento() )
+		if ( $oPersonaVO->idtipodocumento == $oTipoDocumento->idtipodocumento )
 		{
-			$oPersona->setTipoDocumento($oTipoDocumento);
 			$validaciones['validarTipoDocumento'] = true;
 		}
 	}
 
-	foreach ( $aSexo as $oSexo )
+	if ( $oPersonaVO->sexo == 'M' || $oPersonaVO->sexo  == 'F' )
 	{
-		if ( $sexo == $oSexo->getIdSexo() )
-		{
-			$oPersona->setSexo($oSexo);
-			$validaciones['validarSexo'] = true;
-		}
+		$validaciones['validarSexo'] = true;
 	}
+	
 
-	foreach ( $aProvincia as $oProvincia )
+	foreach ( $aProvincia as $provincia )
 	{
-		if ( $oProvincia->getIdProvincia() == $provincia )
+		if ( $provincia == $oPersonaVO->provincia )
 		{
 			$validaciones['validarProvincia'] = true;
-			$oPersona->setProvincia($oProvincia);
 		}
 	}
 
-	$oEmail = new Contacto(Contacto::TIPO_EMAIL, $email);
-	if ( $oEmail->validar() == true )
-	{
-		$validaciones['validarEmail'] = true;
-		$oPersona->setEmail($oEmail);
-	}
-
-	$oTelefono = new Contacto(Contacto::TIPO_TELEFONO, $telefono);
-	if ( $oTelefono->validar() == true )
-	{
-		$validaciones['validarTelefono'] = true;
-		$oPersona->setTelefono($oTelefono);
-	}
-
-	$oCelular = new Contacto(Contacto::TIPO_TELEFONO, $celular);
-	if ( $oCelular->validar() == true )
+	$validar = $oPersona->validar();
+	if ( $validar[0] == true )
 	{
 		$validaciones['validarCelular'] = true;
-		$oPersona->setCelular($oCelular);
 	}
 
-	$oPersona->setApellido($apellido);
-	$oPersona->setNombre($nombre);
-	$oPersona->setNumeroDocumento($documento);
-	$oPersona->setNacionalidad($nacionalidad);
-	$oPersona->setLocalidad($localidad);
+	if($validar[1] == true)
+	{
+		$validaciones['validarEmail'] = true;
+	}
+	var_dump($oUsuario);
 }
 
 $validacionesCorrectas = true;
@@ -111,73 +99,23 @@ foreach ( $validaciones as $validacion )
 
 if ( $validacionesCorrectas == true )
 {
-	$pdo = conectarDB();
+	$pdo = DataBase::getInstance()->getConexion();
 	$pdo->beginTransaction();
 
 	try
 	{
-		$query = "select idpersona from usuario where idusuario = :idUsuario";
-		$stmt = $pdo->prepare($query);
-		$stmt->bindValue(':idUsuario', $idUsuario, PDO::PARAM_INT);
-		$stmt->execute();
-		$idPersona = $stmt->fetchColumn();
-
-		$query = "update persona set
-				idtipodocumento = :idTipoDocumento,
-				apellido = :apellido,
-				nombre = :nombre,
-				numerodocumento = :documento,
-				sexo = :sexo,
-				nacionalidad = :nacionalidad,
-				email = :email,
-				telefono = :telefono,
-				celular = :celular,
-				provincia = :provincia,
-				localidad = :localidad
-			where
-				idpersona = :idPersona";
-
-		$stmt = $pdo->prepare($query);
-
-		$stmt->bindValue(':idTipoDocumento', $oPersona->getTipoDocumento()->getIdTipoDocumento(),PDO::PARAM_INT);
-		$stmt->bindValue(':apellido', $oPersona->getApellido(),PDO::PARAM_STR);
-		$stmt->bindValue(':nombre', $oPersona->getNombre(),PDO::PARAM_STR);
-		$stmt->bindValue(':documento', $oPersona->getNumeroDocumento(),PDO::PARAM_INT);
-		$stmt->bindValue(':sexo', $oPersona->getSexo()->getIdSexo(),PDO::PARAM_STR);
-		$stmt->bindValue(':nacionalidad', $oPersona->getNacionalidad(),PDO::PARAM_STR);
-		$stmt->bindValue(':email', $oPersona->getEmail()->getValor(),PDO::PARAM_STR);
-		$stmt->bindValue(':telefono', $oPersona->getTelefono()->getValor(),PDO::PARAM_STR);
-		$stmt->bindValue(':celular', $oPersona->getCelular()->getValor(),PDO::PARAM_STR);
-		$stmt->bindValue(':provincia', $oPersona->getProvincia()->getDescripcion(),PDO::PARAM_STR);
-		$stmt->bindValue(':localidad', $oPersona->getLocalidad(),PDO::PARAM_STR);
-		$stmt->bindValue(':idPersona', $idPersona,PDO::PARAM_INT);
-
-		$stmt->execute();
-
-		$query = "update usuario set
-				idtipousuario = :idTipoUsuario,
-				nombre = :usuario,
-				contrasenia = :contrasenia
-			where
-				idusuario = :idUsuario";
-
-		$stmt = $pdo->prepare($query);
-
-		$stmt->bindValue(':idUsuario',$idUsuario,PDO::PARAM_INT);
-		$stmt->bindValue(':idTipoUsuario',$tipoUsuario,PDO::PARAM_INT);
-		$stmt->bindValue(':usuario',$oPersona->getUsuario()->getNombre(),PDO::PARAM_STR);
-		$stmt->bindValue(':contrasenia',$oPersona->getUsuario()->getContrasenia(),PDO::PARAM_STR);
-
-		$stmt->execute();
+		$oUsuario->update();
+		$oPersona->update();
 
 		$pdo->commit();
 
 		session_destroy();
-		header('location: /tp5/administrador');
+		header('location: /tp5/administrador/index.php');
 	}
 	catch (Exception $e)
 	{
 		$pdo->rollBack();
+		echo "Error al insertar datos: ". $e->getMessage();
 	}
 }
 
@@ -216,8 +154,6 @@ if ( $validacionesCorrectas == true )
 					<li>La provincia ingresada no se encuentra registrada</li>
 				<?php } if ( $validaciones['validarEmail'] == false ) { ?>
 					<li>El correo electrónico no es válido. Debe contener un símbolo "@"</li>
-				<?php } if ( $validaciones['validarTelefono'] == false ) { ?>
-					<li>El teléfono no es válido. Debe contener al menos 10 dígitos y estar separado por un "-"</li>
 				<?php } if ( $validaciones['validarCelular'] == false ) { ?>
 					<li>El celular no es válido. Debe contener al menos 10 dígitos y estar separado por un "-"</li>
 				<?php } ?>
@@ -225,7 +161,7 @@ if ( $validacionesCorrectas == true )
 		<?php } ?>
 
 		<div class="buttons">
-			<input type="button" value="Anterior" onclick="document.location='/tp5/administrador'">
+    	    <a href="/tp5/administrador/editar.php?id=<?= (int)$_POST['idUsuario']?>" title="Editar"><img alt="Volver" src="/tp5/includes/img/back.png"></a>
 		</div>
 	</div>
 
